@@ -1,0 +1,23 @@
+# Segredos (nunca versionar; só o .env.example entra no repositório)
+.env
+.env.*
+!.env.example
+
+# Dependências e builds
+node_modules/
+.pnpm-store/
+.turbo/
+.next/
+.expo/
+dist/
+build/
+coverage/
+
+# Supabase local
+supabase/.temp/
+supabase/.branches/
+
+# Sistema e editor
+.DS_Store
+Thumbs.db
+*.log
