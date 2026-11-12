@@ -11,3 +11,6 @@ export * from './temas/contraste';
 export * from './temas/temas';
 export * from './temas/status';
 export * from './temas/marca';
+export * from './auth/esquemas';
+export * from './auth/papeis';
+export * from './auth/destino';

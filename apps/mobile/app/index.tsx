@@ -1,4 +1,6 @@
+import { Link } from 'expo-router';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useSessao } from '../contexto/sessao';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   CORES_STATUS,
@@ -14,6 +16,7 @@ import {
 const cores = TEMAS[TEMA_PADRAO].cores;
 
 export default function TelaInicial() {
+  const { sessao } = useSessao();
   const exemplo = calcularConclusao({
     precosServicos: [15000, 7000],
     ajuste: -2000,
@@ -43,6 +46,9 @@ export default function TelaInicial() {
             </Text>
           ))}
         </View>
+        <Link href={sessao ? '/conta' : '/entrar'} style={estilos.link}>
+          {sessao ? 'Minha conta' : 'Entrar'}
+        </Link>
       </ScrollView>
     </SafeAreaView>
   );
@@ -54,6 +60,7 @@ const estilos = StyleSheet.create({
   titulo: { fontSize: 36, color: cores.texto },
   suave: { color: cores.textoSuave },
   texto: { color: cores.texto },
+  link: { color: cores.primaria, fontSize: 16, paddingVertical: 6 },
   linha: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   selo: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 4, overflow: 'hidden' },
 });

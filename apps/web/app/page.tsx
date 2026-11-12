@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import type { CSSProperties } from 'react';
 import {
   CORES_STATUS,
@@ -21,6 +22,14 @@ export default function PaginaInicial() {
     <main className="mx-auto max-w-3xl p-10">
       <h1 className="text-4xl">{MARCA.nome}</h1>
       <p className="text-texto-suave">{MARCA.slogan}</p>
+      <nav className="mt-4 flex gap-4">
+        <Link href="/entrar" className="rounded bg-primaria px-4 py-2 text-texto-sobre-primaria">
+          Entrar
+        </Link>
+        <Link href="/cadastro" className="rounded border border-borda px-4 py-2 text-texto">
+          Criar conta
+        </Link>
+      </nav>
 
       <section className="mt-8">
         <h2 className="text-xl">Exemplo da RN09</h2>
