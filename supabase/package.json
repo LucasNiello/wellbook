@@ -1,0 +1,20 @@
+{
+  "name": "@wellbook/banco",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json",
+    "lint": "eslint .",
+    "usuarios:seed": "node --env-file-if-exists=../.env scripts/criar-usuarios-seed.ts"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.16",
+    "@supabase/supabase-js": "^2.119.0",
+    "@types/node": "^26.6.6",
+    "@wellbook/shared": "workspace:*",
+    "typescript": "~6.0.3",
+    "vitest": "^5.1.0"
+  }
+}
