@@ -32,23 +32,16 @@ export default function Cadastro() {
     const { data, error } = await supabase.auth.signUp({
       email: r.data.email,
       password: r.data.senha,
-      options: { data: { nome: r.data.nome, telefone: r.data.telefone } },
+      // O gatilho do banco grava consentimento_lgpd_em = now() quando consentimento_lgpd é true (RNF05, DP2).
+      options: {
+        data: { nome: r.data.nome, telefone: r.data.telefone, consentimento_lgpd: r.data.consentimentoLgpd },
+      },
     });
     if (error) {
       setEnviando(false);
       return setErro(traduzirErroAuth(error.message));
     }
-    if (data.session) {
-      // RNF05: registra o momento do consentimento no próprio usuário.
-      // Pendência do reviewer: o ideal é o gatilho gravar now() a partir dos metadados (migration nova).
-      const { error: erroConsentimento } = await supabase
-        .from('usuarios')
-        .update({ consentimento_lgpd_em: new Date().toISOString() })
-        .eq('id', data.session.user.id);
-      if (erroConsentimento) {
-        setErro('Sua conta foi criada, mas o aceite da política não foi registrado. Tente enviar de novo.');
-      }
-    } else {
+    if (!data.session) {
       setAviso('Conta criada. Confirme seu e-mail para entrar.');
     }
     setEnviando(false);

@@ -28,27 +28,20 @@ export default function PaginaCadastro() {
     setCarregando(true);
     setErro(null);
     const supabase = criarClienteNavegador();
-    // O gatilho do banco cria a linha em `usuarios` lendo nome e telefone destes metadados.
+    // O gatilho do banco cria a linha em `usuarios` com nome e telefone destes metadados e grava
+    // consentimento_lgpd_em = now() (relógio do servidor) quando consentimento_lgpd é true (RNF05, DP2).
     const { data, error } = await supabase.auth.signUp({
       email: r.data.email,
       password: r.data.senha,
-      options: { data: { nome: r.data.nome, telefone: r.data.telefone } },
+      options: {
+        data: { nome: r.data.nome, telefone: r.data.telefone, consentimento_lgpd: r.data.consentimentoLgpd },
+      },
     });
     if (error) {
       setCarregando(false);
       return setErro(traduzirErroAuth(error.message));
     }
-    if (data.session && data.user) {
-      // RNF05: registra o momento do consentimento (o próprio usuário pode atualizar a sua linha).
-      // Pendência do reviewer: o ideal é o gatilho gravar now() a partir dos metadados (migration nova).
-      const { error: erroConsentimento } = await supabase
-        .from('usuarios')
-        .update({ consentimento_lgpd_em: new Date().toISOString() })
-        .eq('id', data.user.id);
-      if (erroConsentimento) {
-        setCarregando(false);
-        return setErro('Sua conta foi criada, mas o aceite da política não foi registrado. Tente enviar de novo.');
-      }
+    if (data.session) {
       router.replace('/conta');
       router.refresh();
       return;

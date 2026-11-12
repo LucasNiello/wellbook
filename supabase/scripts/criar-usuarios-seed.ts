@@ -56,6 +56,8 @@ for (const conta of CONTAS) {
     password: senha,
     email_confirm: true,
     user_metadata: { nome: conta.nome, telefone: conta.telefone },
+    // DPc7: contas criadas pela clínica/plataforma dispensam o consentimento do cadastro do app.
+    app_metadata: { criado_pela_clinica: true },
   });
   if (!error) {
     console.log(`✔ criada: ${conta.email} (${conta.perfil})`);

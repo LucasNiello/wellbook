@@ -441,7 +441,7 @@ describe('RF01/RF05: gatilho que cria usuarios a partir de auth.users', () => {
   it('RF05: novo usuário em auth.users ganha linha em public.usuarios com o mesmo id e e-mail', async () => {
     const r = await banco.comoSuperusuario(async (tx) => {
       await tx.consultar(
-        `insert into auth.users (id, email, raw_user_meta_data) values ('cccccccc-0000-4000-8000-000000000001', 'novo@example.com', '{"nome":"Fulano Novo"}'::jsonb)`,
+        `insert into auth.users (id, email, raw_user_meta_data) values ('cccccccc-0000-4000-8000-000000000001', 'novo@example.com', '{"nome":"Fulano Novo","consentimento_lgpd":true}'::jsonb)`,
       );
       return tx.consultar<{ id: string; email: string; super_admin: boolean; provedor_login: string; nome: string | null }>(
         `select id, email, super_admin, provedor_login, nome from usuarios where id = 'cccccccc-0000-4000-8000-000000000001'`,
@@ -458,7 +458,7 @@ describe('RF01/RF05: gatilho que cria usuarios a partir de auth.users', () => {
     const r = await banco.comoSuperusuario(async (tx) => {
       await tx.consultar(
         `insert into auth.users (id, email, raw_user_meta_data)
-         values ('cccccccc-0000-4000-8000-000000000002', 'esperto@example.com', '{"nome":"Esperto","super_admin":true}'::jsonb)`,
+         values ('cccccccc-0000-4000-8000-000000000002', 'esperto@example.com', '{"nome":"Esperto","super_admin":true,"consentimento_lgpd":true}'::jsonb)`,
       );
       return tx.consultar<{ super_admin: boolean }>(`select super_admin from usuarios where id = 'cccccccc-0000-4000-8000-000000000002'`);
     });
@@ -468,7 +468,7 @@ describe('RF01/RF05: gatilho que cria usuarios a partir de auth.users', () => {
 
   it('RN15: o usuário recém-criado não é membro de nenhum tenant nem profissional', async () => {
     const r = await banco.comoSuperusuario(async (tx) => {
-      await tx.consultar(`insert into auth.users (id, email) values ('cccccccc-0000-4000-8000-000000000003', 'sem@example.com')`);
+      await tx.consultar(`insert into auth.users (id, email, raw_user_meta_data) values ('cccccccc-0000-4000-8000-000000000003', 'sem@example.com', '{"consentimento_lgpd":true}'::jsonb)`);
       return {
         m: await tx.consultar(`select 1 from membros_tenant where usuario_id = 'cccccccc-0000-4000-8000-000000000003'`),
         p: await tx.consultar(`select 1 from profissionais where usuario_id = 'cccccccc-0000-4000-8000-000000000003'`),

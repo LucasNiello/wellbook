@@ -1,9 +1,10 @@
 -- Só para os testes: um SEGUNDO tenant e um segundo cliente, para provar o isolamento (RN15).
 -- Tenant B tem expediente todos os dias, das 06:00 às 23:00, para facilitar testes de RPC.
-insert into auth.users (id, email, raw_user_meta_data) values
-  ('bbbbbbbb-0000-4000-8000-000000000001', 'admin-b@example.com',   '{"nome": "Bruno Aurora"}'),
-  ('bbbbbbbb-0000-4000-8000-000000000002', 'prof-b@example.com',    '{"nome": "Bianca Reis"}'),
-  ('bbbbbbbb-0000-4000-8000-000000000003', 'cliente-b@example.com', '{"nome": "Diego Souza", "telefone": "11966660000"}');
+-- Contas criadas como pela Admin API (DPc7): raw_app_meta_data.criado_pela_clinica = true.
+insert into auth.users (id, email, raw_user_meta_data, raw_app_meta_data) values
+  ('bbbbbbbb-0000-4000-8000-000000000001', 'admin-b@example.com',   '{"nome": "Bruno Aurora"}', '{"criado_pela_clinica": true}'),
+  ('bbbbbbbb-0000-4000-8000-000000000002', 'prof-b@example.com',    '{"nome": "Bianca Reis"}', '{"criado_pela_clinica": true}'),
+  ('bbbbbbbb-0000-4000-8000-000000000003', 'cliente-b@example.com', '{"nome": "Diego Souza", "telefone": "11966660000"}', '{"criado_pela_clinica": true}');
 
 insert into public.tenants (id, nome, slug, tema, prazo_cancelamento_min)
 values ('bbbbbbbb-1111-4111-8111-111111111111', 'Estúdio Aurora', 'estudio-aurora', 'onix', 0);

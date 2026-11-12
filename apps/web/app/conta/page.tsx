@@ -3,6 +3,7 @@ import { ROTA_DO_PAPEL, type Papel } from '@wellbook/shared';
 import { criarClienteServidor } from '../../lib/supabase/servidor';
 import { carregarPerfil } from '../../lib/perfil';
 import { BotaoSair } from '../../components/BotaoSair';
+import { BotaoExcluirConta } from '../../components/BotaoExcluirConta';
 import { LinkTexto } from '../../components/ui';
 
 const NOME_DO_PAPEL: Readonly<Record<Papel, string>> = {
@@ -67,11 +68,13 @@ export default async function PaginaConta() {
         <p>
           <LinkTexto href="/privacidade">Política de privacidade</LinkTexto>
         </p>
-        <p>
-          <button type="button" disabled className="cursor-not-allowed text-texto-suave">
-            Excluir minha conta (em breve)
-          </button>
-        </p>
+        {perfil.papeis.length === 1 && perfil.papeis[0] === 'cliente' ? (
+          <BotaoExcluirConta />
+        ) : (
+          <p className="text-texto-suave">
+            Contas de clínica ou de profissional são encerradas pela administração.
+          </p>
+        )}
         <BotaoSair />
       </section>
     </main>
