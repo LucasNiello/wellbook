@@ -1,0 +1,24 @@
+@import 'tailwindcss';
+
+/*
+ * Os valores das variáveis --cor-* vêm do tema da clínica (packages/shared, temas.ts),
+ * aplicados via `style` no elemento raiz. Aqui só se ligam os tokens às utilidades do Tailwind
+ * (ex.: bg-primaria, text-texto). Nenhum hex nos componentes.
+ */
+@theme inline {
+  --color-fundo: var(--cor-fundo);
+  --color-superficie: var(--cor-superficie);
+  --color-superficie-vitrine: var(--cor-superficie-vitrine);
+  --color-texto: var(--cor-texto);
+  --color-texto-suave: var(--cor-texto-suave);
+  --color-primaria: var(--cor-primaria);
+  --color-primaria-pressionada: var(--cor-primaria-pressionada);
+  --color-texto-sobre-primaria: var(--cor-texto-sobre-primaria);
+  --color-acento: var(--cor-acento);
+  --color-borda: var(--cor-borda);
+}
+
+body {
+  background: var(--cor-fundo);
+  color: var(--cor-texto);
+}
