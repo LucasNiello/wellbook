@@ -10,7 +10,7 @@ Você é um **engenheiro full-stack sênior em TypeScript**, especialista em Rea
 
 **Enquadramento: protótipo acadêmico, não produção.** O objetivo é um sistema funcional, correto e bem estruturado, para ser demonstrado e avaliado. Robustez de produção (escala, alta disponibilidade, observabilidade) está fora do escopo.
 
-**Ambiente do Lucas:** Windows, VS Code, Node LTS, repositório em `Desktop\REPOS\wellbook`. Supabase **em nuvem** (projeto gratuito), sem Docker local. Sem conta Apple Developer e sem development build.
+**Ambiente do Lucas:** Windows, VS Code, Node LTS, repositório na pasta aberta no VS Code (varia por máquina: `Desktop\REPOS\wellbook` ou `Desktop\Lucas_Repos\wellbook`); nunca use caminho absoluto em código, scripts ou configuração. Supabase **em nuvem** (projeto gratuito), sem Docker local. Sem conta Apple Developer e sem development build.
 
 ---
 
@@ -108,11 +108,11 @@ Regras:
        AGENDADO ────────────────────────────────────────────┘
           │
           ├── profissional conclui ───────► CONCLUIDO        (final; grava valores; soma no faturamento)
-          ├── cliente/profissional/admin ─► CANCELADO        (final; não soma)
+          ├── cliente/profissional ───────► CANCELADO        (final; não soma; a QUALQUER momento — D26)
           └── profissional marca falta ───► NAO_COMPARECEU   (final; não soma)
 ```
 
-- Transições válidas **somente** as acima. Estados finais não mudam.
+- Transições válidas **somente** as acima. Estados finais não mudam. O admin **não** cancela nem remarca (D26). Desativar o profissional cancela, no banco, os AGENDADO dele (motivo "Profissional indisponível").
 - Implemente a validação de transição em `packages/shared` (com testes) **e** no banco (constraint/trigger ou RPC), para que a regra valha mesmo fora da interface.
 - **Concluir** é atômico: muda o status e grava a linha em `conclusoes` na mesma transação (função RPC no Postgres).
 
@@ -176,13 +176,13 @@ Exemplo obrigatório como teste: bruto R$ 220,00, ajuste −R$ 20,00, líquido R
 |---|---|
 | Admin que atende | O admin do tenant também pode atender (comum em barbearias). Mantém o nível admin e aparece na lista de profissionais se quiser: o mesmo usuário tem o papel admin em `membros_tenant` **e** uma linha ativa em `profissionais` (ver D10 em 7.2). |
 | Avatar | Perfis de profissionais têm avatar, com upload de foto (Supabase Storage, bucket com RLS por tenant). Coluna `avatar_url` em `profissionais`. |
-| Prazo de cancelamento | Configurável por tenant, definido pelo admin (RN16). Vale só para o cliente; admin e profissional cancelam/remarcam a qualquer momento. |
+| Prazo de cancelamento | Configurável por tenant, definido pelo admin (RN16), em minutos; **padrão 0 = sem prazo** (o cliente cancela/remarca a qualquer momento, até depois do início). Vale só para o cliente (D13, D26). Profissional e cliente cancelam/remarcam a qualquer momento; o admin **não** cancela nem remarca (D26). |
 | Lembretes | Automáticos 24 h antes e 1 h antes do atendimento, por **notificação local agendada no dispositivo** (expo-notifications, funciona no Expo Go) **e e-mail**. Agendamentos cancelados ou remarcados não disparam o lembrete antigo (a notificação local é cancelada/reagendada). Só se agenda o lembrete cujo horário ainda está no futuro (agendamento com menos de 24 h recebe só o de 1 h). |
 | Push remoto | **"Em desenvolvimento"** (o Expo Go no Android não recebe push remoto desde o SDK 53, e development build está vetado). Confirmações, cancelamentos e remarcações aparecem na tela e por e-mail. A tabela `dispositivos_push` existe no modelo, mas não é usada para envio nesta entrega. |
 | Agendamento simultâneo | Um profissional atende um cliente por vez. O cliente PODE ter agendamentos simultâneos com profissionais diferentes (ex.: cabelo e manicure no mesmo horário). A constraint anti-conflito vale por profissional, não por cliente. |
 | Login social | Botões Google e Apple aparecem na tela de login, desabilitados e marcados como "Em desenvolvimento". O único login funcional é e-mail e senha (vence RF03, RF04, RNF12 e o passo 1 do fluxo do documento). `usuarios.provedor_login` fica no modelo, com uso apenas de `email`. |
 | E-mail | Provedor Resend (plano gratuito, sem domínio verificado: só entrega na conta do Lucas; na demonstração os e-mails vão para contas dele). Chave só no `.env`/secret da Edge Function. O SMTP do Supabase Auth também é configurado com o Resend. Confirmação de e-mail do Supabase Auth **desligada** durante o desenvolvimento. |
-| Sigilo em saúde mental | **Decidido (D19).** `servicos.sigiloso` (boolean, padrão `false`), definido pelo admin. Em agendamento com serviço sigiloso, o admin vê data, horário, profissional, serviço e valores da conclusão, mas **não** vê nome nem contato do cliente (mostra "Atendimento sigiloso"). O profissional do atendimento vê tudo. Dashboards do admin contam esses atendimentos nos totais sem identificar o cliente. Implementado por **RLS/view no banco**, não só na interface. A RN11 continua valendo para todas as observações. Nenhuma outra regra de sigilo e nenhum prontuário. |
+| Sigilo | **D27 (substitui a D19).** Não existe mais serviço sigiloso nem máscara: o admin vê **nome e telefone** do cliente em **todos** os agendamentos do tenant (organização e acolhimento na recepção), mas **nunca o e-mail**. O sigilo de verdade é a **RN11**: `observacoes_agendamento` só para o cliente e o profissional do atendimento; nenhum caminho (tabela, view, RPC, join, dashboard) dá ao admin acesso às observações. Nenhuma outra regra de sigilo e nenhum prontuário. |
 | Supabase CLI | Plano B: se o Apex One bloquear o executável do CLI, migrations e seed são aplicados pelo SQL Editor do painel (sempre com autorização, seção 3). |
 
 ### 7.2 Respostas ao diagnóstico da Fase 0 (11/11/2026)
@@ -199,7 +199,7 @@ Exemplo obrigatório como teste: bruto R$ 220,00, ajuste −R$ 20,00, líquido R
 | D4 | Valor bruto fixo = soma dos preços atuais dos serviços no momento da conclusão; não é editável. Diferenças vão no ajuste. |
 | D5 | Horários livres de 15 em 15 minutos. Em "Hoje", só horários futuros, sem antecedência mínima. |
 | D6 | O expediente pode ter vários períodos no mesmo dia (uma linha por período). |
-| D7 | Concluir e marcar não compareceu: só a partir do início do horário. Cancelar e remarcar: só antes do início. |
+| D7 | Concluir e marcar não compareceu: só a partir do início do horário. **Cancelar e remarcar: a qualquer momento, inclusive depois do início (D26 revoga a regra "só antes do início").** |
 | D8 | 4 cores de status fixas (fundo + texto do selo), com contraste validado por teste contra os 8 fundos. |
 | D9 | Tokens que faltam (primária pressionada, superfície de vitrine, acento, texto dos temas escuros) são derivados e têm o contraste validado por teste. |
 | D10 | **Sem trigger de sincronização.** Fonte única: a tabela `profissionais` define quem atende (linha ativa = papel profissional). `membros_tenant` guarda **só** o papel admin. `profissionais.usuario_id` é único (RN14). |
@@ -208,15 +208,18 @@ Exemplo obrigatório como teste: bruto R$ 220,00, ajuste −R$ 20,00, líquido R
 | D13 | O prazo da RN16 vale só para o cliente. |
 | D14 | Remarcar muda só data e hora; mesmo profissional e mesmos serviços. |
 | D15 | `tenants` ganha `whatsapp` e `endereco`. |
-| D16 | O admin vê nome e telefone dos clientes com agendamento no seu tenant (exceto em atendimento sigiloso, ver D19). |
+| D16 | O admin vê **nome e telefone** dos clientes com agendamento no seu tenant, em todos os agendamentos (D27), pela view `agendamentos_admin`; nunca o e-mail e nunca as observações. |
 | D17 | Excluir profissional/serviço com histórico = desativar (`ativo = false`); exclusão física só sem histórico. |
 | D18 | Usuários do seed criados por script que lê a senha do `.env` (`SEED_SENHA`) e usa a Admin API; `seed.sql` só com dados. |
-| D19 | Ver "Sigilo em saúde mental" em 7.1. |
+| D19 | **Revogada pela D27** (sigilo por serviço e máscara do cliente removidos). |
 | D20 | O Super Admin cria o tenant e a conta do admin; o admin cria as contas dos profissionais. Ambos por Edge Function com senha provisória e **troca de senha obrigatória no primeiro login**. Sem convite por e-mail. |
 | D21 | O app abre com a lista das clínicas ativas e uma busca por nome; também abre direto pelo link/slug. |
 | D22 | Exclusão de conta do cliente (RNF05) entra na Fase 3: dados pessoais anonimizados, conclusões da clínica mantidas. Política de privacidade: gerar rascunho marcado "RASCUNHO — revisar"; a equipe revisa. |
 | D23 | Tenant desativado: página pública mostra "clínica indisponível" e não aceita novos agendamentos. Agendamentos futuros **não** são cancelados automaticamente; o admin decide quando reativar. |
 | D24 | Lembrete só é agendado se o horário dele ainda estiver no futuro. |
+| D25 | (F2-23, 12/11/2026) Profissionais são autônomos. Desativado **mantém só leitura (SELECT) das próprias linhas em `conclusoes`** para o acerto de contas; não lê observações, contatos de clientes nem agendamentos, e não tem acesso operacional (não conclui, não marca falta, não vê a agenda). *(A trava "só desativa sem AGENDADO" foi substituída pelo cancelamento automático da D26.)* |
+| D26 | (F2-24, 12/11/2026) **Agenda e permissões.** O profissional é autônomo e a agenda é dele. **Admin:** cadastra profissionais, edita dados e % de repasse, desativa/exclui profissional e LÊ a agenda de todos (data, hora, profissional, serviço, nome e telefone do cliente, status); **não** cancela, remarca, cria agendamento nem cria/edita horários e bloqueios; não lê observações. **Profissional:** cancela e remarca os próprios agendamentos a qualquer momento (inclusive depois do início), conclui e marca falta (só ele, só a partir do início) e define os próprios horários e bloqueios (RF16/RF17 passam a ser só do profissional). **Cliente:** cancela e remarca os próprios a qualquer momento. RN16: coluna e regra mantidas, padrão 0, só para o cliente. Cancelado em qualquer momento não soma (RN05). **Desativar profissional (a exclusão física só existe para quem não tem nenhum agendamento — D17; com histórico a chave estrangeira barra e vale desativar):** o banco cancela automaticamente todos os AGENDADO dele com `motivo_cancelamento = 'Profissional indisponível'`; reativar **não** restaura; isso **substitui** a trava `PROFISSIONAL_COM_AGENDAMENTOS_PENDENTES` da D25. *Pendência da Fase 4:* a tela de desativar mostra "N agendamentos em aberto serão cancelados e os clientes avisados. Confirmar?". *Pendência da Fase 8:* o aviso de cancelamento por profissional indisponível vai por e-mail ao cliente, com o WhatsApp da clínica para remarcar com outro profissional. |
+| D27 | (F2-24, 12/11/2026) **Sigilo.** Remove a máscara da D19, `servicos.sigiloso` e `agendamentos.sigiloso`: o admin vê nome e telefone do cliente em todos os agendamentos do tenant (não o e-mail). O sigilo é a RN11 (observações só para cliente e profissional do atendimento), sem exceção para o admin. Atualiza a D16. |
 
 ---
 
@@ -225,7 +228,7 @@ Exemplo obrigatório como teste: bruto R$ 220,00, ajuste −R$ 20,00, líquido R
 1. **Não** execute nenhum comando Git que altere índice ou histórico (ver seção 3). Nem "só para organizar".
 2. **Não** integre meios de pagamento (Stripe, Mercado Pago, Pix API), **não** calcule impostos e **não** implemente caução (RN01, RN02).
 3. **Não** implemente login com Facebook, e **não** implemente o fluxo funcional de Google/Apple (só os botões desabilitados).
-4. **Não** crie prontuário clínico nem regras de sigilo além da decisão D19 (seção 7).
+4. **Não** crie prontuário clínico nem regras de sigilo além da RN11 e da D27 (seção 7).
 5. **Não** use a API oficial do WhatsApp. O WhatsApp é só o link `https://wa.me/<numero>` (RF34).
 6. **Não** adicione 2FA, filas, microsserviços, cache distribuído, Sentry/observabilidade, Docker, CI/CD ou feature flags. É protótipo acadêmico.
 7. **Não** permita que o admin leia observações de clientes, nem por consulta direta, view ou dashboard.
@@ -252,9 +255,9 @@ Cada fase segue a máquina de estados 5.1: **troca de modelo → plano → aprov
 | **1. Fundação** | Opus 5.5 · Alto | Monorepo (pnpm + Turborepo), `apps/mobile`, `apps/web`, `packages/shared`, TypeScript estrito, ESLint, Vitest. Em `shared`: tipos das 13 entidades, schemas Zod, tokens dos 8 temas + marca Wellbook, funções puras de valores/comissão, transições de estado e horários livres, **com testes**. | RN07–RN10, RN12, RN13, RNF02, RNF07, RNF08 |
 | **2. Banco** | Opus 5.5 · Alto | Migrations das 13 tabelas (+ coluna de avatar e de prazo de cancelamento), enums, índices, constraint anti-conflito por profissional, RLS de todas as tabelas, buckets do Storage com RLS, RPCs `concluir_atendimento`, `cancelar_agendamento`, `marcar_nao_compareceu`, `remarcar_agendamento`. Seed: 1 tenant demo, 1 admin que também atende, 3 profissionais de áreas diferentes, 6 serviços, horários, 1 cliente, agendamentos em todos os estados (incluindo 2 simultâneos do mesmo cliente com profissionais diferentes). Script SQL de verificação das RLS por perfil. | RN03–RN16, RNF03, modelo de dados, seção 7 |
 | **3. Autenticação** | Sonnet 5.5 · Médio | Supabase Auth no web e no mobile: e-mail/senha, recuperação de senha, cadastro do cliente com consentimento LGPD, carregamento de perfis/papéis e proteção de rotas por papel. Botões Google e Apple desabilitados com o selo "Em desenvolvimento". | RF01–RF06, RNF05, seção 7 |
-| **4. Gestão da clínica (web)** | Sonnet 5.5 · Médio | Painel do admin: dados da clínica, seletor de tema com prévia ao vivo, upload de logo, CRUD de profissionais (com % de repasse e avatar), opção "eu também atendo" para o admin, CRUD de serviços, vínculo profissional↔serviço, horários e bloqueios, prazo de cancelamento. Painel do Super Admin: CRUD de tenants. | RF07–RF17, RN10, RN16, seção 7 |
+| **4. Gestão da clínica (web)** | Sonnet 5.5 · Médio | Painel do admin: dados da clínica, seletor de tema com prévia ao vivo, upload de logo, CRUD de profissionais (com % de repasse e avatar), opção "eu também atendo" para o admin, CRUD de serviços, vínculo profissional↔serviço, leitura dos horários e bloqueios (quem os edita é o profissional — D26), prazo de cancelamento; tela de desativar profissional com confirmação "N agendamentos em aberto serão cancelados e os clientes avisados" (D26). Painel do Super Admin: CRUD de tenants. | RF07–RF17, RN10, RN16, seção 7 |
 | **5. Agendamento do cliente** | Sonnet 5.5 · Médio | Página pública da clínica (`/[slug]`) no web e telas equivalentes no app: profissional (com avatar) → serviços → dia (Hoje / Amanhã / Escolher data) → horários livres → observação → confirmação. "Meus agendamentos" com cancelar e remarcar respeitando o prazo do tenant. Tema da clínica aplicado. | RF18–RF23, RF08, RF11, RN11–RN14, RN16 |
-| **6. Agenda do profissional** | Opus 5.5 · Alto | Agenda por dia e semana (web e app), detalhe do atendimento com observação do cliente, Concluir (bruto, ajuste, forma de pagamento, prévia do líquido e da divisão) e Não compareceu. | RF24–RF28, RN03–RN09 |
+| **6. Agenda do profissional** | Opus 5.5 · Alto | Agenda por dia e semana (web e app), detalhe do atendimento com observação do cliente, Concluir (bruto, ajuste, forma de pagamento, prévia do líquido e da divisão), Não compareceu, cancelar/remarcar os próprios atendimentos e **edição dos próprios horários e bloqueios (RF16/RF17, só do profissional — D26)**. | RF16, RF17, RF24–RF28, RN03–RN09 |
 | **7. Dashboards** | Sonnet 5.5 · Médio | Dashboard geral (admin) e individual (profissional): faturamento, nº de atendimentos, repasses e comissão, com filtros por profissional, cliente, serviço e período. O profissional só vê os próprios dados. | RF29–RF31, RN05 |
 | **8. Notificações** | Sonnet 5.5 · Médio | E-mail via Resend para confirmação, cancelamento e remarcação (e aviso na tela); lembretes 24 h e 1 h antes por notificação local (expo-notifications) + e-mail; push remoto marcado "Em desenvolvimento"; botão wa.me. | RF32–RF34, seção 7 |
 | **9. Acabamento** | Sonnet 5.5 · Médio | Identidade Wellbook (preto #0E0E10, marfim #F5F1EA, champagne #C9A96E; Cormorant Garamond nos títulos, Inter na interface), revisão dos 8 temas claros e escuros, estados vazios e de erro, verificação de contraste, README de instalação e execução. | RNF07–RNF11, seção 8 do documento |
@@ -371,3 +374,14 @@ Acrescente ao relatório de fim de fase:
 | Subagente | Modelo · Esforço | Tarefa | Resultado |
 |---|---|---|---|
 ```
+
+---
+
+## 13. Troca de máquina
+| Momento | O que fazer |
+|---|---|
+| Fim do dia | Liste o que está pendente de commit (git status) e sugira a mensagem. O Lucas faz commit e push. |
+| Início em qualquer máquina | Quando o Lucas disser "nova sessão" ou "troquei de máquina": rode git fetch e git pull --ff-only, faça a verificação do ambiente (ferramentas, git config, bloqueio de git, .env) e mostre a tabela de status. |
+| Permissões de Git | Permitidos sem perguntar: status, log, diff, remote -v, fetch, pull --ff-only, clone. Proibidos sempre: add, commit, push, merge, reset, rebase, checkout, switch, restore, stash, cherry-pick, revert, clean, worktree, branch. |
+| Pull recusado | Pare e mostre o git status. Nunca resolva conflito ou divergência sozinho. |
+| .env | Não vêm pelo Git. Se faltar algum, liste quais variáveis o Lucas precisa preencher. |
