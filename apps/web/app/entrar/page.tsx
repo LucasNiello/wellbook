@@ -40,6 +40,7 @@ function FormularioEntrar() {
   return (
     <CartaoAuth
       titulo="Entrar"
+      descricao="Acesse sua conta para acompanhar seus agendamentos e as áreas disponíveis para o seu perfil."
       rodape={
         <>
           <p>

@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=Inter:wght@400;500;600;700&display=swap');
 @import 'tailwindcss';
 
 /*
@@ -6,6 +7,8 @@
  * (ex.: bg-primaria, text-texto). Nenhum hex nos componentes.
  */
 @theme inline {
+  --font-sans: 'Inter', Arial, sans-serif;
+  --font-serif: 'Cormorant Garamond', Georgia, serif;
   --color-fundo: var(--cor-fundo);
   --color-superficie: var(--cor-superficie);
   --color-superficie-vitrine: var(--cor-superficie-vitrine);
@@ -21,4 +24,119 @@
 body {
   background: var(--cor-fundo);
   color: var(--cor-texto);
+  font-family: var(--font-sans);
+}
+
+@property --angulo-trilha {
+  syntax: '<angle>';
+  initial-value: 0deg;
+  inherits: false;
+}
+
+@keyframes trilha-animata { to { --angulo-trilha: 360deg; } }
+
+.borda-animata { background: var(--cor-borda); }
+.borda-animata-trilha {
+  background: conic-gradient(from var(--angulo-trilha), transparent 65%, var(--cor-primaria) 88%, transparent 100%);
+  animation: trilha-animata 7s linear infinite;
+}
+
+/* Blurry Blob do Animata, adaptado aos tokens dourado e champagne da home. */
+@keyframes pulsar-blob-animata {
+  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+  33% { transform: translate3d(16%, -10%, 0) scale(1.25); }
+  66% { transform: translate3d(-12%, 12%, 0) scale(.78); }
+}
+.blurry-blob-animata {
+  z-index: 0;
+  mask-image: linear-gradient(to bottom, black 8%, black 70%, transparent 100%);
+}
+.blurry-blob-animata__forma {
+  position: absolute;
+  display: block;
+  border-radius: 50%;
+  filter: blur(50px);
+  mix-blend-mode: screen;
+  will-change: transform;
+  animation: pulsar-blob-animata 18s ease-in-out infinite;
+}
+.blurry-blob-animata__forma--dourada {
+  top: 8%;
+  left: 25%;
+  width: min(58vw, 470px);
+  aspect-ratio: 1;
+  background: var(--cor-primaria);
+  opacity: .38;
+}
+.blurry-blob-animata__forma--amarela {
+  bottom: 5%;
+  left: -8%;
+  width: min(46vw, 360px);
+  aspect-ratio: 1;
+  background: var(--cor-acento);
+  opacity: .3;
+  animation-delay: -9s;
+}
+@media (max-width: 1023px) {
+  .blurry-blob-animata__forma--amarela {
+    top: 33%;
+    bottom: auto;
+    left: -12%;
+    width: min(55vw, 360px);
+    opacity: .32;
+  }
+}
+
+/* Variações discretas dos botões Shining e Work do Animata para a home. */
+.botao-animata-brilho {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  transition: transform 280ms ease, box-shadow 280ms ease, background-color 280ms ease;
+}
+.botao-animata-brilho::after {
+  content: '';
+  position: absolute;
+  inset: -60% auto -60% -45%;
+  width: 30%;
+  transform: skewX(-25deg) translateX(-240%);
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--cor-texto) 34%, transparent), transparent);
+  pointer-events: none;
+}
+.botao-animata-brilho:hover,
+.botao-animata-brilho:focus-visible {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 28px color-mix(in srgb, var(--cor-primaria) 24%, transparent);
+}
+.botao-animata-brilho:hover::after,
+.botao-animata-brilho:focus-visible::after {
+  transform: skewX(-25deg) translateX(680%);
+  transition: transform 780ms ease;
+}
+.botao-animata-brilho svg,
+.link-animata-seta svg { transition: transform 260ms ease; }
+.botao-animata-brilho:hover svg,
+.botao-animata-brilho:focus-visible svg,
+.link-animata-seta:hover svg,
+.link-animata-seta:focus-visible svg { transform: translateX(5px); }
+.link-animata-seta { transition: color 260ms ease, gap 260ms ease; }
+.link-animata-seta:hover,
+.link-animata-seta:focus-visible { gap: 1.25rem; }
+
+@media (prefers-reduced-motion: reduce) {
+  .borda-animata-trilha { animation: none; }
+  .blurry-blob-animata__forma { animation: none; will-change: auto; }
+  .botao-animata-brilho,
+  .botao-animata-brilho::after,
+  .botao-animata-brilho svg,
+  .link-animata-seta,
+  .link-animata-seta svg { transition: none; }
+  .botao-animata-brilho:hover,
+  .botao-animata-brilho:focus-visible,
+  .botao-animata-brilho:hover::after,
+  .botao-animata-brilho:focus-visible::after,
+  .botao-animata-brilho:hover svg,
+  .botao-animata-brilho:focus-visible svg,
+  .link-animata-seta:hover svg,
+  .link-animata-seta:focus-visible svg { transform: none; }
 }

@@ -54,6 +54,7 @@ export default function PaginaCadastro() {
   return (
     <CartaoAuth
       titulo="Criar conta"
+      descricao="Crie sua conta de cliente para acompanhar sua jornada de cuidado em um só lugar."
       rodape={
         <p>
           Já tem conta? <LinkTexto href="/entrar">Entrar</LinkTexto>

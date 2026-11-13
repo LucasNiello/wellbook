@@ -2,7 +2,7 @@
 
 Este guia prepara **outro PC Windows** para executar o monorepo Wellbook. Execute os comandos PowerShell na **raiz do repositório**, salvo quando a etapa mandar entrar em outra pasta. O projeto contém o app Expo em `apps/mobile`, o site Next.js em `apps/web`, regras compartilhadas em `packages/shared` e migrations em `supabase/migrations`.
 
-> Estado atual: as sete migrations já foram aplicadas ao projeto Supabase WellBook vinculado em 12/11/2026. As telas atuais ainda são o protótipo das fases iniciais; configurar o banco não significa que o app já tenha fluxos de login e agendamento implementados.
+> Estado atual: as 12 migrations estão aplicadas ao projeto Supabase WellBook. A gestão web da clínica usa o banco e as Edge Functions `criar-conta-equipe` e `excluir-conta`.
 
 ## 1. Instalar no Windows
 
@@ -99,9 +99,20 @@ npx supabase db push --remote
 npx supabase migration list --remote
 ```
 
-A CLI pedirá confirmação antes de alterar o projeto hospedado. No Supabase WellBook atual, as sete migrations já constam no histórico remoto; o `db push` deve indicar que está atualizado. **Não rode** `db reset` no projeto remoto. Para mudanças futuras, crie uma migration nova em vez de editar uma já aplicada.
+A CLI pedirá confirmação antes de alterar o projeto hospedado. No Supabase WellBook atual, as 12 migrations já constam no histórico remoto; o `db push` deve indicar que está atualizado. **Não rode** `db reset` no projeto remoto. Para mudanças futuras, crie uma migration nova em vez de editar uma já aplicada.
 
-Se a CLI não funcionar por bloqueio do antivírus, o plano alternativo é aplicar os sete arquivos `supabase/migrations/*.sql` em ordem no SQL Editor. As instruções e a ordem exata estão em `documentacao/configuracao-supabase.md`.
+Se a CLI não funcionar por bloqueio do antivírus, aplique as migrations pendentes em ordem no SQL Editor e registre o histórico remoto antes de voltar ao `db push`. As instruções estão em `documentacao/configuracao-supabase.md`.
+
+### Edge Functions
+
+No projeto WellBook atual, `criar-conta-equipe` e `excluir-conta` estão publicadas. Para configurar outro projeto Supabase, depois das migrations rode na raiz:
+
+```powershell
+npx supabase functions deploy criar-conta-equipe
+npx supabase functions deploy excluir-conta
+```
+
+As funções precisam de `SUPABASE_URL`, `SUPABASE_ANON_KEY` e `SUPABASE_SERVICE_ROLE_KEY` no ambiente do Supabase, com a verificação JWT ativada. A chave secreta nunca vai para arquivos `EXPO_PUBLIC_*` ou `NEXT_PUBLIC_*`. A criação de admin exige Super Admin; a de profissional exige admin da clínica. A senha provisória aparece uma vez na tela e deve ser entregue em particular.
 
 ## 5. Dados de demonstração (opcional)
 
@@ -171,6 +182,7 @@ npx supabase migration list --remote
 - [ ] Arquivos `.env` preenchidos com chaves adequadas, sem versionar segredos.
 - [ ] Projeto Supabase correto vinculado e `migration list --remote` conferida.
 - [ ] Migrations aplicadas somente se pendentes.
+- [ ] Edge Functions `criar-conta-equipe` e `excluir-conta` publicadas no projeto certo.
 - [ ] Expo iniciado em `apps/mobile`; Next.js iniciado separadamente se necessário.
 - [ ] `pnpm typecheck`, `pnpm lint` e `pnpm test` executados após a instalação completa.
 

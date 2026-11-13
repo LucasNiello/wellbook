@@ -27,6 +27,7 @@ export default function PaginaRecuperarSenha() {
   return (
     <CartaoAuth
       titulo="Recuperar senha"
+      descricao="Informe seu e-mail. Se houver uma conta, enviaremos um link para você criar uma nova senha."
       rodape={
         <p>
           <LinkTexto href="/entrar">Voltar para o login</LinkTexto>

@@ -6,6 +6,7 @@ export default function PaginaRedefinirSenha() {
   return (
     <CartaoAuth
       titulo="Criar nova senha"
+      descricao="Escolha uma senha para voltar a acessar sua conta com segurança."
       rodape={
         <p>
           <LinkTexto href="/recuperar-senha">Pedir outro link</LinkTexto>

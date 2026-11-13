@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 72 72" role="img" aria-labelledby="titulo">
+  <title id="titulo">Símbolo Wellbook</title>
+  <g fill="none" stroke="#C9A96E" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M9 43C24 16 48 12 65 20 58 45 40 59 9 43Z"/>
+    <path d="M10 44C28 36 45 28 64 20"/>
+    <path d="M18 45c-3 5-7 9-13 12"/>
+  </g>
+</svg>

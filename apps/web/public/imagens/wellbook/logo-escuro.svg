@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 330 74" role="img" aria-labelledby="titulo">
+  <title id="titulo">Wellbook</title>
+  <g fill="none" stroke="#C9A96E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M11 42C25 17 47 13 64 20 57 42 41 55 11 42Z"/>
+    <path d="M12 43C28 36 43 29 63 20"/>
+    <path d="M19 44c-3 4-7 7-13 9"/>
+  </g>
+  <text x="78" y="54" fill="#0E0E10" font-family="Cormorant Garamond, Georgia, serif" font-size="54" font-weight="500" letter-spacing="-2">Wellbook</text>
+</svg>
