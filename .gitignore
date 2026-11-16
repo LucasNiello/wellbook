@@ -22,3 +22,5 @@ supabase/.branches/
 Thumbs.db
 *.log
 *.tsbuildinfo
+
+apps/web/next-env.d.ts
