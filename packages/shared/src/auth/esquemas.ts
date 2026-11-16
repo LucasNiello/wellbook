@@ -3,6 +3,7 @@
  * Usados igualmente no web e no mobile.
  */
 import { z } from 'zod';
+import { slugReservado } from '../regras/slug';
 
 /** Tamanho mínimo da senha (o mesmo configurado no Supabase Auth: 8). */
 export const SENHA_MINIMA = 8;
@@ -29,22 +30,86 @@ export const esquemaLogin = z.object({
   senha: z.string().min(1, { message: 'Informe a senha.' }),
 });
 
-/** RF01 + RNF05: cadastro do cliente exige consentimento explícito. */
+const camposCadastroPessoa = {
+  nome: z.string().trim().min(1, { message: 'Informe seu nome.' }).max(120),
+  email: esquemaEmail,
+  telefone: esquemaTelefone,
+  senha: esquemaSenha,
+  confirmacaoSenha: z.string(),
+  consentimentoLgpd: z.literal(true, {
+    message: 'É preciso aceitar a política de privacidade para criar a conta.',
+  }),
+};
+
+const senhasConferem = {
+  check: (d: { senha: string; confirmacaoSenha: string }) => d.senha === d.confirmacaoSenha,
+  params: { message: 'As senhas não conferem.', path: ['confirmacaoSenha'] },
+};
+
+/** RF01 + RNF05: cadastro do cliente exige consentimento explícito (porta Cliente — D28). */
 export const esquemaCadastro = z
-  .object({
-    nome: z.string().trim().min(1, { message: 'Informe seu nome.' }).max(120),
-    email: esquemaEmail,
-    telefone: esquemaTelefone,
-    senha: esquemaSenha,
-    confirmacaoSenha: z.string(),
-    consentimentoLgpd: z.literal(true, {
-      message: 'É preciso aceitar a política de privacidade para criar a conta.',
-    }),
-  })
-  .refine((d) => d.senha === d.confirmacaoSenha, {
-    message: 'As senhas não conferem.',
-    path: ['confirmacaoSenha'],
-  });
+  .object(camposCadastroPessoa)
+  .refine(senhasConferem.check, senhasConferem.params);
+
+// Empresa (D28, D29, D30, D37, D40) ------------------------------------------------------------
+export const MODOS_EMPRESA = ['sozinho', 'equipe'] as const;
+export type ModoEmpresa = (typeof MODOS_EMPRESA)[number];
+
+const camposEmpresa = {
+  nomeEmpresa: z
+    .string()
+    .trim()
+    .min(2, { message: 'Informe o nome da empresa (mínimo 2 caracteres).' })
+    .max(120),
+  slug: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .min(3, { message: 'O link precisa ter pelo menos 3 caracteres.' })
+    .max(60, { message: 'O link pode ter no máximo 60 caracteres.' })
+    .regex(/^[a-z0-9]+(-[a-z0-9]+)*$/, { message: 'Use só letras minúsculas, números e hífens no link.' })
+    .refine((s) => !slugReservado(s), { message: 'Este link é reservado pelo Wellbook. Escolha outro.' }), // D44
+  modo: z.enum(MODOS_EMPRESA, { message: 'Diga se você atende sozinho ou tem equipe.' }),
+  especialidade: z.string().trim().max(80).optional(),
+};
+
+const especialidadeNoModoSozinho = {
+  check: (d: { modo: ModoEmpresa; especialidade?: string | undefined }) =>
+    d.modo === 'equipe' || (d.especialidade ?? '').length >= 2,
+  params: {
+    message: 'Informe sua especialidade (ex.: Manicure, Psicóloga).',
+    path: ['especialidade'],
+  },
+};
+
+/** D38: o usuário já logado abre uma empresa (tela /conta). */
+export const esquemaAbrirEmpresa = z
+  .object(camposEmpresa)
+  .refine(especialidadeNoModoSozinho.check, especialidadeNoModoSozinho.params);
+
+/** D28 + D32: porta Empresa — dados da pessoa (com consentimento LGPD) + dados da empresa. */
+export const esquemaCadastroEmpresa = z
+  .object({ ...camposCadastroPessoa, ...camposEmpresa })
+  .refine(senhasConferem.check, senhasConferem.params)
+  .refine(especialidadeNoModoSozinho.check, especialidadeNoModoSozinho.params);
+
+export type DadosAbrirEmpresa = z.infer<typeof esquemaAbrirEmpresa>;
+export type DadosCadastroEmpresa = z.infer<typeof esquemaCadastroEmpresa>;
+
+/** Parâmetros da RPC public.cadastrar_empresa (mesmo formato no web e no mobile). */
+export function parametrosCadastrarEmpresa(d: DadosAbrirEmpresa): {
+  p_nome: string;
+  p_slug: string;
+  p_atendo_sozinho: boolean;
+  p_especialidade: string | null;
+} {
+  return {
+    p_nome: d.nomeEmpresa,
+    p_slug: d.slug,
+    p_atendo_sozinho: d.modo === 'sozinho',
+    p_especialidade: d.modo === 'sozinho' ? (d.especialidade ?? null) : null,
+  };
+}
 
 export const esquemaRecuperarSenha = z.object({ email: esquemaEmail });
 

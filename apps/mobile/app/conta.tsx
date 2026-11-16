@@ -1,6 +1,15 @@
-import type { Papel } from '@wellbook/shared';
+import {
+  esquemaAbrirEmpresa,
+  parametrosCadastrarEmpresa,
+  primeiraMensagem,
+  ROTA_DO_PAPEL,
+  traduzirErroBanco,
+  type Papel,
+} from '@wellbook/shared';
+import { useLocalSearchParams, useRouter, type Href } from 'expo-router';
 import { useState } from 'react';
 import { Alert } from 'react-native';
+import { CamposEmpresa, EMPRESA_VAZIA, dadosDaEmpresa } from '../componentes/CamposEmpresa';
 import { Botao, Atalho, MensagemErro, Tela, Texto, Titulo } from '../componentes/ui';
 import { useSessao } from '../contexto/sessao';
 import { supabase } from '../lib/supabase';
@@ -30,10 +39,20 @@ async function mensagemDoServidor(erro: unknown): Promise<string | null> {
 }
 
 export default function Conta() {
-  const { perfil, papeis, sair } = useSessao();
+  const { perfil, papeis, sair, recarregar } = useSessao();
+  const roteador = useRouter();
+  const [abrindo, setAbrindo] = useState(false);
+  const [empresaAberta, setEmpresaAberta] = useState(false);
+  const [empresa, setEmpresa] = useState(EMPRESA_VAZIA);
   const [excluindo, setExcluindo] = useState(false);
-  const [erro, setErro] = useState<string | null>(null);
+  // Revisão da Etapa B (achado 2): o cadastro da porta Empresa manda para cá o erro da RPC,
+  // porque a guarda de rotas pode trocar de tela antes de a RPC responder.
+  const { aviso } = useLocalSearchParams<{ aviso?: string }>();
+  const [erro, setErro] = useState<string | null>(typeof aviso === 'string' && aviso ? aviso : null);
   const soCliente = papeis.papeis.length === 1 && papeis.papeis[0] === 'cliente';
+  // Cosmético 8 (Etapa B): abrir empresa e excluir conta só para quem não tem NENHUM vínculo
+  // (o profissional desativado também fica de fora — JA_PROFISSIONAL / CONTA_COM_VINCULO).
+  const clientePuro = papeis.clientePuro;
 
   // D22 / RNF05: Edge Function `excluir-conta` (valida o usuário, anonimiza pela RPC e remove do Auth).
   async function excluir() {
@@ -48,6 +67,21 @@ export default function Conta() {
       return;
     }
     await sair();
+  }
+
+  // D38: o cliente abre uma empresa (mesma RPC da porta Empresa — D29).
+  async function abrirEmpresa() {
+    setErro(null);
+    const r = esquemaAbrirEmpresa.safeParse(dadosDaEmpresa(empresa));
+    if (!r.success) return setErro(primeiraMensagem(r.error));
+    setAbrindo(true);
+    const { error } = await supabase.rpc('cadastrar_empresa', parametrosCadastrarEmpresa(r.data));
+    if (error) {
+      setAbrindo(false);
+      return setErro(traduzirErroBanco(error));
+    }
+    await recarregar();
+    roteador.replace(ROTA_DO_PAPEL.admin as Href);
   }
 
   function confirmar() {
@@ -68,6 +102,24 @@ export default function Conta() {
       <Atalho href="/trocar-senha">Trocar senha</Atalho>
       <Atalho href="/privacidade">Política de privacidade</Atalho>
       {soCliente ? (
+        <>
+          <Botao titulo="Encontrar uma clínica" secundario aoPressionar={() => roteador.push('/clinicas')} />
+          {!clientePuro ? null : empresaAberta ? (
+            <>
+              <Texto suave>Você vira o administrador da empresa. Uma empresa por conta; sem CNPJ.</Texto>
+              <CamposEmpresa valor={empresa} aoMudar={setEmpresa} />
+              <Botao
+                titulo={abrindo ? 'Criando…' : 'Criar empresa'}
+                desabilitado={abrindo}
+                aoPressionar={() => void abrirEmpresa()}
+              />
+            </>
+          ) : (
+            <Botao titulo="Abrir minha empresa" secundario aoPressionar={() => setEmpresaAberta(true)} />
+          )}
+        </>
+      ) : null}
+      {clientePuro ? (
         <Botao
           titulo={excluindo ? 'Excluindo…' : 'Excluir minha conta'}
           secundario

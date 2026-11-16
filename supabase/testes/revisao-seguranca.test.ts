@@ -131,14 +131,17 @@ describe('I2: Super Admin não acessa dados operacionais', () => {
     expect(msg).toMatch(/row-level security/);
   });
 
-  it('ainda nomeia outra pessoa como admin de um tenant', async () => {
-    const r = await banco.comoUsuario(U.superAdmin, (tx) =>
-      tx.consultar<{ usuario_id: string }>(
-        `insert into membros_tenant (tenant_id, usuario_id) values ($1, $2) returning usuario_id`,
-        [T.b, U.profB],
+  // Etapa B (D43): o Super Admin não cria nem remove admins (sai membros_super_insere).
+  it('D43: não nomeia mais ninguém como admin de um tenant', async () => {
+    const msg = await banco.comoUsuario(U.superAdmin, (tx) =>
+      erroDe(
+        tx.consultar(`insert into membros_tenant (tenant_id, usuario_id) values ($1, $2) returning usuario_id`, [
+          T.b,
+          U.profB,
+        ]),
       ),
     );
-    expect(r[0]?.usuario_id).toBe(U.profB);
+    expect(msg).toMatch(/row-level security/);
   });
 
   it('não muda tema nem logo de uma clínica', async () => {

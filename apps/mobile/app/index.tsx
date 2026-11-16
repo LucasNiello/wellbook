@@ -1,10 +1,11 @@
-import { Link } from 'expo-router';
+import { Link, type Href } from 'expo-router';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSessao } from '../contexto/sessao';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   CORES_STATUS,
   MARCA,
+  ROTA_DO_PAPEL,
   STATUS_AGENDAMENTO,
   TEMAS,
   TEMA_PADRAO,
@@ -46,8 +47,8 @@ export default function TelaInicial() {
             </Text>
           ))}
         </View>
-        <Link href={sessao ? '/conta' : '/entrar'} style={estilos.link}>
-          {sessao ? 'Minha conta' : 'Entrar'}
+        <Link href={(sessao ? ROTA_DO_PAPEL.cliente : '/entrar') as Href} style={estilos.link}>
+          {sessao ? 'Clínicas' : 'Entrar'}
         </Link>
       </ScrollView>
     </SafeAreaView>

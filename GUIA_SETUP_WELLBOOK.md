@@ -112,7 +112,7 @@ npx supabase functions deploy criar-conta-equipe
 npx supabase functions deploy excluir-conta
 ```
 
-As funções precisam de `SUPABASE_URL`, `SUPABASE_ANON_KEY` e `SUPABASE_SERVICE_ROLE_KEY` no ambiente do Supabase, com a verificação JWT ativada. A chave secreta nunca vai para arquivos `EXPO_PUBLIC_*` ou `NEXT_PUBLIC_*`. A criação de admin exige Super Admin; a de profissional exige admin da clínica. A senha provisória aparece uma vez na tela e deve ser entregue em particular.
+As funções precisam de `SUPABASE_URL`, `SUPABASE_ANON_KEY` e `SUPABASE_SERVICE_ROLE_KEY` no ambiente do Supabase, com a verificação JWT ativada. A chave secreta nunca vai para arquivos `EXPO_PUBLIC_*` ou `NEXT_PUBLIC_*`. A `criar-conta-equipe` cria só contas de profissional e exige o admin da clínica (D43: o Super Admin não cria admins; a empresa se cadastra sozinha pela RPC `cadastrar_empresa`, D29). A senha provisória aparece uma vez na tela e deve ser entregue em particular.
 
 ## 5. Dados de demonstração (opcional)
 

@@ -826,21 +826,20 @@ describe('RN15/D23: tenants', () => {
     await semEfeito(U.cliente, `update tenants set nome = 'Hack' where id = $1 returning id`, [T.a]);
   });
 
-  it('RN15: Super Admin insere tenant e altera ativo e slug', async () => {
-    const r = await banco.comoUsuario(U.superAdmin, async (tx) => {
-      const novo = await tx.consultar<{ id: string }>(
-        `insert into tenants (id, nome, slug, tema)
-         select gen_random_uuid(), 'Nova Clínica', 'nova-clinica', tema from tenants where id = $1 returning id`,
-        [T.a],
-      );
-      const id = primeiro(novo).id;
-      const alt = await tx.consultar<{ ativo: boolean; slug: string }>(
-        `update tenants set ativo = false, slug = 'nova-clinica-2' where id = $1 returning ativo, slug`,
-        [id],
-      );
-      return primeiro(alt);
-    });
-    expect(r).toEqual({ ativo: false, slug: 'nova-clinica-2' });
+  // Etapa B (D29/D40): o Super Admin não insere tenant (a empresa se cadastra pela RPC
+  // cadastrar_empresa) e não muda o slug; continua ativando/desativando.
+  it('D29: Super Admin não insere tenant e só altera ativo', async () => {
+    const msgInsere = await banco.comoUsuario(U.superAdmin, (tx) =>
+      erroDe(tx.consultar(`insert into tenants (nome, slug) values ('Nova Clínica', 'nova-clinica')`)),
+    );
+    expect(msgInsere).toMatch(/row-level security/);
+    const r = await banco.comoUsuario(U.superAdmin, (tx) =>
+      tx.consultar<{ ativo: boolean; slug: string }>(
+        `update tenants set ativo = false where id = $1 returning ativo, slug`,
+        [T.b],
+      ),
+    );
+    expect(primeiro(r).ativo).toBe(false);
   });
 
   it('RN15: Super Admin lê todos os tenants, inclusive inativos', async () => {

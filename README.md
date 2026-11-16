@@ -38,7 +38,7 @@ São quatro perfis. Cada profissional enxerga só os próprios dados; o admin en
 
 | Perfil | Quem é | Escopo |
 |---|---|---|
-| Super Admin | Dono da plataforma Wellbook | Cadastra e ativa/desativa tenants. Não acessa dados operacionais das clínicas |
+| Super Admin | Dono da plataforma Wellbook | Ativa/desativa tenants (o cadastro do tenant passou a ser feito pela própria empresa: substituída pela D29/D43, ver CLAUDE.md 7.3). Não acessa dados operacionais das clínicas |
 | Admin do tenant | Dono da clínica | Tudo da sua clínica: profissionais, serviços, comissões, tema, dashboard geral |
 | Profissional | Cabeleireiro(a), manicure, esteticista, psicólogo(a), terapeuta | A própria agenda, os próprios serviços e o próprio dashboard |
 | Cliente | Quem agenda o atendimento | Os próprios agendamentos, em qualquer clínica que use a Wellbook |
@@ -81,7 +81,7 @@ São 34 requisitos em 7 módulos. A coluna Perfil indica quem executa a ação.
 
 | ID | Requisito | Perfil |
 |---|---|---|
-| RF07 | Cadastrar, ativar e desativar tenants (clínicas) | Super Admin |
+| RF07 | Cadastrar, ativar e desativar tenants (clínicas) — cadastro pela própria empresa, substituída pela D29/D43 | Super Admin (ativar/desativar) · Empresa (cadastro) |
 | RF08 | Cada tenant tem uma página pública com link próprio (ex.: wellbook.app/nome-da-clinica) | Sistema |
 | RF09 | Escolher 1 tema entre os presets; a mudança vale na hora para app e site do tenant | Admin |
 | RF10 | Enviar o logo da clínica | Admin |

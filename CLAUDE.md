@@ -212,7 +212,7 @@ Exemplo obrigatório como teste: bruto R$ 220,00, ajuste −R$ 20,00, líquido R
 | D17 | Excluir profissional/serviço com histórico = desativar (`ativo = false`); exclusão física só sem histórico. |
 | D18 | Usuários do seed criados por script que lê a senha do `.env` (`SEED_SENHA`) e usa a Admin API; `seed.sql` só com dados. |
 | D19 | **Revogada pela D27** (sigilo por serviço e máscara do cliente removidos). |
-| D20 | O Super Admin cria o tenant e a conta do admin; o admin cria as contas dos profissionais. Ambos por Edge Function com senha provisória e **troca de senha obrigatória no primeiro login**. Sem convite por e-mail. |
+| D20 | **(Parte do Super Admin substituída pela D29/D43: a empresa se cadastra sozinha e o Super Admin não cria tenant nem admin. Continua valendo: o admin cria os profissionais com senha provisória e troca obrigatória.)** O Super Admin cria o tenant e a conta do admin; o admin cria as contas dos profissionais. Ambos por Edge Function com senha provisória e **troca de senha obrigatória no primeiro login**. Sem convite por e-mail. |
 | D21 | O app abre com a lista das clínicas ativas e uma busca por nome; também abre direto pelo link/slug. |
 | D22 | Exclusão de conta do cliente (RNF05) entra na Fase 3: dados pessoais anonimizados, conclusões da clínica mantidas. Política de privacidade: gerar rascunho marcado "RASCUNHO — revisar"; a equipe revisa. |
 | D23 | Tenant desativado: página pública mostra "clínica indisponível" e não aceita novos agendamentos. Agendamentos futuros **não** são cancelados automaticamente; o admin decide quando reativar. |
@@ -223,7 +223,7 @@ Exemplo obrigatório como teste: bruto R$ 220,00, ajuste −R$ 20,00, líquido R
 | D22 (detalhe) | (Fase 3, 12/11/2026) Exclusão pela RPC `excluir_minha_conta()` + Edge Function `excluir-conta`: AGENDADO **futuros** do cliente são **cancelados** (motivo "Conta excluída pelo cliente"); observações do cliente **apagadas**; dados pessoais anonimizados; `conclusoes` mantidas. A Edge Function chama a RPC como o usuário, limpa os metadados do Auth e remove a conta com soft delete. Migration `20261112000300`. |
 | DP2 | (Fase 3) O consentimento LGPD é gravado pelo gatilho do cadastro (`now()` do servidor) a partir do metadado `consentimento_lgpd: true`; a coluna `consentimento_lgpd_em` fica protegida contra alteração pelo próprio usuário. Migration `20261112000200`. |
 | DP3 | (Fase 3) D20 no banco: com senha provisória (`troca_senha_obrigatoria`), o usuário não age como profissional (helpers de RLS exigem senha definitiva) e não cria/conclui/cancela/remarca/marca falta (gatilho `exigir_senha_definitiva` em `agendamentos`, erro `TROCA_SENHA_OBRIGATORIA`). Migration `20261112000100`. |
-| DPc1 | (Fase 3) A D20 vale também para o papel **admin**: `eh_admin_do_tenant` e `eh_profissional_visivel_ao_admin` exigem senha definitiva. A própria linha em `membros_tenant` continua visível (o app precisa dela para mandar à troca de senha). Migration `20261112000500`. |
+| DPc1 | (Fase 3) **(O admin com senha provisória deixou de existir: substituída pela D29/D43, porque quem cadastra a empresa já tem senha definitiva. A checagem continua no banco, sem efeito prático.)** A D20 vale também para o papel **admin**: `eh_admin_do_tenant` e `eh_profissional_visivel_ao_admin` exigem senha definitiva. A própria linha em `membros_tenant` continua visível (o app precisa dela para mandar à troca de senha). Migration `20261112000500`. |
 | DPc2 | (Fase 3) Só o booleano JSON `true` conta como aceite do consentimento (`"true"` em texto e `false` não valem). |
 | DPc3 | (Fase 3) A D22 vale só para conta de **cliente puro**: admin, profissional (ativo ou não) e super admin recebem `CONTA_COM_VINCULO`; na interface o botão nem aparece para eles. |
 | DPc4 | (Fase 3) Na D22, "AGENDADO futuro" = `inicio > now()`. O que já começou fica AGENDADO para o profissional encerrar (D7). A exclusão ignora o prazo da RN16 (intencional). |
@@ -231,6 +231,31 @@ Exemplo obrigatório como teste: bruto R$ 220,00, ajuste −R$ 20,00, líquido R
 | DPc6 | (Fase 3) A Edge Function remove a conta do Auth com **soft delete** (`deleteUser(id, true)`) + `signOut` global: o hard delete esbarraria na FK `usuarios.id → auth.users`. |
 | DPc7 | (Fase 3) O cadastro **sem** `consentimento_lgpd = true` é recusado (`CONSENTIMENTO_OBRIGATORIO`, constraint trigger adiado em `auth.users`, checado no commit), exceto contas criadas pela clínica/plataforma com `raw_app_meta_data.criado_pela_clinica = true` (só a Admin API grava). **Toda criação de conta pela Admin API (seed, Edge Functions da D20 na Fase 4) precisa gravar essa marca.** Migration `20261112000400`. |
 | DPc8 | (Fase 3) As contas do seed (inclusive `cliente@`) são "criadas pela clínica" e ficam sem data de consentimento. |
+
+### 7.3 Decisões de 16/11/2026
+
+Prevalecem sobre a D20 e a D25 onde conflitarem (e sobre "Painel do Super Admin: CRUD de tenants" da Fase 4 na seção 9).
+
+| ID | Decisão |
+|---|---|
+| D28 | O cadastro tem 2 portas: Cliente e Empresa. O profissional não se cadastra sozinho; o admin o cria pela Edge Function criar-conta-equipe (senha provisória e troca no 1º login). Não há convite. |
+| D29 | A empresa se cadastra sozinha, nasce ativa, e quem a cadastra vira admin. O Super Admin não cria tenants; só ativa ou desativa. Substitui essa parte da D20. |
+| D30 | O autônomo é uma Empresa no modo "atendo sozinho": cria o tenant e liga o "eu também atendo". Sem CNPJ e sem CRM. |
+| D31 | A RN14 continua: um profissional pertence a um só tenant, com uma conta por clínica. O conflito de horário entre clínicas é limitação conhecida (não implementar a solução). |
+| D32 | Cliente e Empresa gravam o consentimento LGPD (DPc7). |
+| D33 | E-mail que já tem conta não vira profissional; a Edge Function devolve uma mensagem clara. |
+| D34 | Link direto /[slug]/[profissional] abre o agendamento com o profissional já escolhido (Etapa C). |
+| D35 | O profissional desativado lê nome e telefone dos clientes que já atendeu, além das próprias conclusões. Altera a D25. Continua sem observações, sem agenda e sem acesso operacional. |
+| D36 | A D27 continua; o sigilo é a RN11. O campo de observação mostra "Visível só para você e o profissional" (Etapa C). |
+| D37 | Uma empresa por conta (e-mail): quem já é admin de uma empresa não cadastra outra (`JA_ADMIN_DE_EMPRESA`). |
+| D38 | O cliente que já tem conta pode abrir uma empresa depois, pela tela /conta, com a mesma RPC `cadastrar_empresa`. |
+| D39 | Na D35, "clientes que já atendeu" = clientes com pelo menos 1 linha em `conclusoes` com o profissional. Lido pela RPC `meus_clientes_atendidos()` (nome e telefone, sem e-mail). |
+| D40 | Slug sugerido pelo nome da empresa e editável no cadastro; em colisão, o servidor acrescenta `-2`, `-3`…; depois de criado, o slug é imutável. |
+| D41 | Repasse padrão de 20% para a clínica (2000 pb) no "eu também atendo" do modo equipe e no formulário de novo profissional; no modo "atendo sozinho" o padrão é 0, porque clínica e profissional são a mesma pessoa. O admin altera individualmente depois. |
+| D42 | A lista simples de clínicas ativas com busca (/clinicas) entra na Etapa B como destino do cliente; a vitrine e o agendamento continuam na Etapa C. |
+| D43 | O Super Admin não cria nem remove admins; cada clínica tem um único admin, quem a cadastrou. Saem o "Criar admin" do PainelPlataforma, o caminho `tipo='admin'` da criar-conta-equipe e as políticas `membros_super_insere` e `membros_super_remove`. |
+| D44 | Slugs reservados (iguais a rotas do app) são recusados na RPC `cadastrar_empresa` (`SLUG_RESERVADO`) e nos schemas do shared: admin, auth, cadastro, clinicas, conta, entrar, privacidade, profissional, recuperar-senha, redefinir-senha, super-admin, trocar-senha, api. A sugestão do formulário nunca propõe um reservado (acrescenta `-empresa`). |
+| D45 | Limitação conhecida: a conta de admin não é encerrada pela aplicação (o Super Admin não remove admins — D43 — e a exclusão da D22 é só para cliente puro — DPc3). Encerrar um admin só por SQL, feito pela equipe. |
 
 ---
 

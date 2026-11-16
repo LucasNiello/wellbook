@@ -27,7 +27,7 @@ interface ValorSessao {
   sair: () => Promise<void>;
 }
 
-const PAPEIS_VAZIOS: PapeisUsuario = { papeis: [], tenantAdmin: null, tenantProfissional: null };
+const PAPEIS_VAZIOS: PapeisUsuario = { papeis: [], tenantAdmin: null, tenantProfissional: null, clientePuro: false };
 
 const Contexto = createContext<ValorSessao | null>(null);
 

@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
+  esquemaAbrirEmpresa,
   esquemaCadastro,
+  esquemaCadastroEmpresa,
+  parametrosCadastrarEmpresa,
   esquemaLogin,
   esquemaNovaSenha,
   esquemaTelefone,
@@ -16,7 +19,7 @@ describe('destinoSeguro: sem redirecionamento aberto', () => {
   });
   it('recusa externos e truques', () => {
     for (const ruim of ['//evil.com', '/\\evil.com', 'https://evil.com', 'evil.com', '/\tevil', '', null, undefined]) {
-      expect(destinoSeguro(ruim)).toBe('/conta');
+      expect(destinoSeguro(ruim)).toBe('/clinicas'); // D42: padrão passou de /conta para /clinicas
     }
   });
 });
@@ -70,10 +73,10 @@ describe('RF02/RF05/D20: login e nova senha', () => {
 
 describe('papéis e proteção de rotas', () => {
   const T = 'tenant-a';
-  it('cliente puro', () => {
+  it('cliente puro vai para a lista de clínicas (D21, D42)', () => {
     const r = derivarPapeis({ superAdmin: false, tenantsAdmin: [], profissionais: [] });
     expect(r.papeis).toEqual(['cliente']);
-    expect(rotaInicial(r.papeis)).toBe('/conta');
+    expect(rotaInicial(r.papeis)).toBe('/clinicas'); // D21/D42 (era /conta: o cliente ficava preso no perfil)
   });
   it('admin que também atende (§7.1, D10) tem os dois papéis e começa no /admin', () => {
     const r = derivarPapeis({ superAdmin: false, tenantsAdmin: [T], profissionais: [{ tenantId: T, ativo: true }] });
@@ -82,10 +85,19 @@ describe('papéis e proteção de rotas', () => {
     expect(r.tenantProfissional).toBe(T);
     expect(rotaInicial(r.papeis)).toBe('/admin');
   });
-  it('profissional desativado perde o papel profissional', () => {
+  it('profissional desativado perde o papel profissional, mas não é cliente puro', () => {
     const r = derivarPapeis({ superAdmin: false, tenantsAdmin: [], profissionais: [{ tenantId: T, ativo: false }] });
     expect(r.papeis).toEqual(['cliente']);
     expect(r.tenantProfissional).toBeNull();
+    expect(r.clientePuro).toBe(false); // cosmético 8: sem "Abrir minha empresa" nem "Excluir conta"
+  });
+  it('clientePuro só para quem não tem nenhum vínculo', () => {
+    expect(derivarPapeis({ superAdmin: false, tenantsAdmin: [], profissionais: [] }).clientePuro).toBe(true);
+    expect(derivarPapeis({ superAdmin: true, tenantsAdmin: [], profissionais: [] }).clientePuro).toBe(false);
+    expect(derivarPapeis({ superAdmin: false, tenantsAdmin: [T], profissionais: [] }).clientePuro).toBe(false);
+    expect(
+      derivarPapeis({ superAdmin: false, tenantsAdmin: [], profissionais: [{ tenantId: T, ativo: true }] }).clientePuro,
+    ).toBe(false);
   });
   it('super admin começa no /super-admin', () => {
     const r = derivarPapeis({ superAdmin: true, tenantsAdmin: [], profissionais: [] });
@@ -107,5 +119,53 @@ describe('papéis e proteção de rotas', () => {
     expect(exigeLogin('/super-admin')).toBe(true);
     expect(exigeLogin('/entrar')).toBe(false);
     expect(exigeLogin('/')).toBe(false);
+  });
+});
+
+describe('D28/D29/D30/D32: cadastro pela porta Empresa', () => {
+  const empresa = {
+    ...cadastroValido,
+    nomeEmpresa: 'Estúdio Aurora',
+    slug: 'estudio-aurora',
+    modo: 'equipe' as const,
+  };
+  it('modo equipe não exige especialidade', () => {
+    const r = esquemaCadastroEmpresa.parse(empresa);
+    expect(parametrosCadastrarEmpresa(r)).toEqual({
+      p_nome: 'Estúdio Aurora',
+      p_slug: 'estudio-aurora',
+      p_atendo_sozinho: false,
+      p_especialidade: null,
+    });
+  });
+  it('modo sozinho (D30) exige especialidade e liga o atendo sozinho', () => {
+    expect(esquemaCadastroEmpresa.safeParse({ ...empresa, modo: 'sozinho' }).success).toBe(false);
+    const r = esquemaCadastroEmpresa.parse({ ...empresa, modo: 'sozinho', especialidade: ' Manicure ' });
+    expect(parametrosCadastrarEmpresa(r)).toMatchObject({ p_atendo_sozinho: true, p_especialidade: 'Manicure' });
+  });
+  it('D32: a porta Empresa também exige o consentimento LGPD', () => {
+    expect(esquemaCadastroEmpresa.safeParse({ ...empresa, consentimentoLgpd: false }).success).toBe(false);
+  });
+  it('sem CNPJ nem CRM (D30): campos extras são ignorados, não exigidos', () => {
+    const r = esquemaCadastroEmpresa.parse({ ...empresa, cnpj: '00.000.000/0001-00' });
+    expect(r).not.toHaveProperty('cnpj');
+  });
+  it('D44: slug reservado é recusado no cadastro de empresa e no abrir empresa', () => {
+    for (const slug of ['admin', 'conta', 'clinicas', 'super-admin', 'api']) {
+      expect(esquemaCadastroEmpresa.safeParse({ ...empresa, slug }).success, slug).toBe(false);
+      expect(esquemaAbrirEmpresa.safeParse({ nomeEmpresa: 'X Y', slug, modo: 'equipe' }).success, slug).toBe(false);
+    }
+    expect(esquemaCadastroEmpresa.safeParse({ ...empresa, slug: 'conta-empresa' }).success).toBe(true);
+  });
+  it('slug inválido e senhas diferentes são recusados', () => {
+    expect(esquemaCadastroEmpresa.safeParse({ ...empresa, slug: 'Com Espaço' }).success).toBe(false);
+    expect(esquemaCadastroEmpresa.safeParse({ ...empresa, slug: 'ab' }).success).toBe(false);
+    expect(esquemaCadastroEmpresa.safeParse({ ...empresa, confirmacaoSenha: 'outra-coisa' }).success).toBe(false);
+  });
+  it('D38: cliente logado abre empresa só com os dados da empresa', () => {
+    expect(
+      esquemaAbrirEmpresa.safeParse({ nomeEmpresa: 'Barbearia', slug: 'barbearia', modo: 'equipe' }).success,
+    ).toBe(true);
+    expect(esquemaAbrirEmpresa.safeParse({ nomeEmpresa: 'B', slug: 'barbearia', modo: 'equipe' }).success).toBe(false);
   });
 });

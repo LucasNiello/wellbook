@@ -8,6 +8,7 @@ import { criarClienteServidor } from '../../lib/supabase/servidor';
 import { carregarPerfil } from '../../lib/perfil';
 import { BotaoSair } from '../../components/BotaoSair';
 import { BotaoExcluirConta } from '../../components/BotaoExcluirConta';
+import { AbrirEmpresa } from '../../components/AbrirEmpresa';
 import { RevelarSuave } from '../../components/animata/RevelarSuave';
 
 const NOME_DO_PAPEL: Readonly<Record<Papel, string>> = {
@@ -77,7 +78,7 @@ export default async function PaginaConta() {
               <p className="mt-2 text-sm leading-6 text-texto-suave">Acesse os espaços vinculados à sua conta.</p>
               <div className="mt-7 grid gap-3 sm:grid-cols-2">
                 {areas.map((papel) => <Link key={papel} href={ROTA_DO_PAPEL[papel]} className="group flex min-h-24 items-center justify-between gap-4 rounded-2xl border border-borda bg-fundo p-5 transition hover:border-primaria focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primaria"><span><Layers3 size={20} className="mb-2 text-primaria"/><span className="font-medium">{NOME_DO_PAPEL[papel]}</span></span><ArrowUpRight size={18} className="text-primaria transition group-hover:-translate-y-1 group-hover:translate-x-1"/></Link>)}
-                {!areas.length && <p className="rounded-2xl border border-borda bg-fundo p-5 text-sm leading-6 text-texto-suave sm:col-span-2">Seu perfil de cliente está ativo. Outras áreas aparecerão aqui quando forem vinculadas à sua conta.</p>}
+                {!areas.length && <div className="rounded-2xl border border-borda bg-fundo p-5 text-sm leading-6 text-texto-suave sm:col-span-2"><p>Seu perfil de cliente está ativo.</p><div className="mt-4 flex flex-wrap gap-3"><Link href={ROTA_DO_PAPEL.cliente} className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-primaria px-4 text-sm font-semibold text-texto-sobre-primaria focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primaria">Encontrar uma clínica <ArrowUpRight size={16}/></Link>{perfil.clientePuro && <AbrirEmpresa/>}</div></div>}
               </div>
             </section>
           </RevelarSuave>
@@ -86,7 +87,7 @@ export default async function PaginaConta() {
             <section id="privacidade" className="scroll-mt-8 rounded-[2rem] border border-borda bg-superficie p-6 sm:p-9">
               <p className="text-[11px] font-semibold uppercase tracking-[.2em] text-primaria">Segurança</p><h2 className="mt-3 font-serif text-4xl">Seus dados, com cuidado.</h2>
               <div className="mt-6 flex flex-wrap gap-5 text-sm"><Link href="/privacidade" className="inline-flex min-h-11 items-center gap-2 text-primaria underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-primaria"><ShieldCheck size={18}/> Política de privacidade <ArrowUpRight size={16}/></Link><Link href="/trocar-senha" className="inline-flex min-h-11 items-center gap-2 text-primaria underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-primaria"><LockKeyhole size={18}/> Trocar senha <ArrowUpRight size={16}/></Link></div>
-              <div className="mt-7 border-t border-borda pt-6 text-sm">{perfil.papeis.length === 1 && perfil.papeis[0] === 'cliente' ? <BotaoExcluirConta/> : <p className="text-texto-suave">Contas de clínica ou de profissional são encerradas pela administração.</p>}</div>
+              <div className="mt-7 border-t border-borda pt-6 text-sm">{perfil.clientePuro ? <BotaoExcluirConta/> : <p className="text-texto-suave">Contas de clínica ou de profissional são encerradas pela administração.</p>}</div>
             </section>
           </RevelarSuave>
         </div>

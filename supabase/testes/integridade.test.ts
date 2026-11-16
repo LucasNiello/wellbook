@@ -499,13 +499,17 @@ describe('RN15: colunas protegidas (CAMPO_PROTEGIDO) para o papel authenticated'
     expect(await comoAuth(U.superAdmin, (tx) => erroDe(tx.consultar(`update usuarios set super_admin = false where id = $1`, [U.superAdmin])))).toContain('CAMPO_PROTEGIDO');
   });
 
-  it('RN15: tenants.slug e tenants.ativo só o Super Admin altera', async () => {
+  // Etapa B (D40): o slug ficou imutável para TODOS, inclusive o Super Admin; só ele muda `ativo`.
+  it('RN15/D40: tenants.slug é imutável e tenants.ativo só o Super Admin altera', async () => {
     expect(await comoAuth(U.admin, (tx) => erroDe(tx.consultar(`update tenants set slug = 'outro' where id = $1`, [T.a])))).toContain('CAMPO_PROTEGIDO');
     expect(await comoAuth(U.admin, (tx) => erroDe(tx.consultar(`update tenants set ativo = false where id = $1`, [T.a])))).toContain('CAMPO_PROTEGIDO');
+    expect(
+      await comoAuth(U.superAdmin, (tx) => erroDe(tx.consultar(`update tenants set slug = 'serena-nova' where id = $1`, [T.a]))),
+    ).toContain('CAMPO_PROTEGIDO');
     const r = await comoAuth(U.superAdmin, (tx) =>
-      tx.consultar<{ slug: string }>(`update tenants set slug = 'serena-nova', ativo = true where id = $1 returning slug`, [T.a]),
+      tx.consultar<{ ativo: boolean }>(`update tenants set ativo = false where id = $1 returning ativo`, [T.a]),
     );
-    expect(primeiro(r).slug).toBe('serena-nova');
+    expect(primeiro(r).ativo).toBe(false);
   });
 
   it('D26: agendamentos.motivo_cancelamento só é gravado junto com status CANCELADO — motivo sem cancelar é CAMPO_PROTEGIDO (até como postgres)', async () => {

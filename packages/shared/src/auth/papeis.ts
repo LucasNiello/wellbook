@@ -21,6 +21,11 @@ export interface PapeisUsuario {
   tenantAdmin: string | null;
   /** Tenant em que o usuário atende (só profissional ativo). */
   tenantProfissional: string | null;
+  /**
+   * Só cliente: sem super admin, sem admin e sem NENHUMA linha em profissionais (nem desativada).
+   * Só ele pode abrir empresa (D38) e excluir a conta (DPc3).
+   */
+  clientePuro: boolean;
 }
 
 export function derivarPapeis(d: DadosPapeis): PapeisUsuario {
@@ -32,16 +37,23 @@ export function derivarPapeis(d: DadosPapeis): PapeisUsuario {
   const tenantProfissional = ativo?.tenantId ?? null;
   if (tenantProfissional) papeis.push('profissional');
   papeis.push('cliente');
-  return { papeis, tenantAdmin, tenantProfissional };
+  const clientePuro = !d.superAdmin && d.tenantsAdmin.length === 0 && d.profissionais.length === 0;
+  return { papeis, tenantAdmin, tenantProfissional, clientePuro };
 }
 
-/** Área de cada papel (web e mobile usam os mesmos prefixos). */
+/**
+ * Área de cada papel (web e mobile usam os mesmos prefixos).
+ * D21/D42: o cliente vai para a lista de clínicas ativas (pública); o perfil continua em /conta.
+ */
 export const ROTA_DO_PAPEL: Readonly<Record<Papel, string>> = {
   super_admin: '/super-admin',
   admin: '/admin',
   profissional: '/profissional',
-  cliente: '/conta',
+  cliente: '/clinicas',
 };
+
+/** Perfil do usuário logado (dados, privacidade, abrir empresa — D38). */
+export const ROTA_CONTA = '/conta';
 
 /** Rota inicial depois do login: o papel de maior privilégio. */
 export function rotaInicial(papeis: readonly Papel[]): string {
